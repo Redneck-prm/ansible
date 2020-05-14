@@ -3,5 +3,5 @@
   hosts: [dbtest]
   tasks:  
     - name: list volume groups
-      debug: msg="echo volume group free is  {{ item.free_g }}" 
+      debug: msg="echo volume group free is  {{ item }}" 
       with_dict: "{{ ansible_lvm.vgs }}"
