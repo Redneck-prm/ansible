@@ -1,0 +1,3 @@
+- name: list volume groups
+  debug: msg="echo volume group free is  {{ item.free_g }}" 
+  with_dict: "{{ ansible_lvm.vgs }}
