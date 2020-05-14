@@ -1,4 +1,7 @@
-- name: list volume groups
+---
+- name: lvm example 
   hosts: [dbtest]
-  debug: msg="echo volume group free is  {{ item.free_g }}" 
-  with_dict: "{{ ansible_lvm.vgs }}
+  tasks:  
+    - name: list volume groups
+      debug: msg="echo volume group free is  {{ item.free_g }}" 
+      with_dict: "{{ ansible_lvm.vgs }}
