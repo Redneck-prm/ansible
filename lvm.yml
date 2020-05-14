@@ -1,7 +1,11 @@
 ---
 - name: lvm example 
   hosts: [dbtest]
+  vars:
+    vg: vgdata
+    lvm_size: 1
+    lvm_log_size: 1
   tasks:  
     - name: list volume groups
-      debug: msg="echo volume group free is  {{ item }}" 
+      debug: msg="echo volume group {{ item.value.key }} free is  {{ item.value.free_g }}" 
       with_dict: "{{ ansible_lvm.vgs }}"
