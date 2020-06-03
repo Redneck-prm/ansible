@@ -1,0 +1,36 @@
+---
+- name: instance create
+  hosts: [dbtest]
+  vars:
+    vg: vgdata
+    instance: test
+    lvm_size: 1g
+    lvm_log_size: 1g
+    mysql_port: 3334
+    
+  tasks:
+    - name: Create instance backup dir
+      file:
+        path: "/srv/backup/mysql_{{ instance }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+        
+    - name: add backup task
+      lineinfile:
+        path: /usr/local/scripts/mysql/mysql_backup_multi.sh
+        line: "/usr/local/scripts/mysql/mysql_snap_multi.sh -b /srv/backup/mysql_{{ instance }} -g vgdata -l mysql_{{ instance }} -s 800M -c bzip2 -d"
+        state: present
+
+    - name: add backup transfer task
+      lineinfile:
+        path: /usr/local/scripts/mysql/run_backup_transfer.sh
+        line: "/usr/local/scripts/backup_maint.sh k8s-db1.cc1.srv.loc /srv/backup/mysql_{{ instance }} cc-storage-1.ertelecom.ru /srv/backup/k8s-db1.cc1.srv.loc/mysql_{{ instance }} 7 2"
+        state: present
+
+    - name: add binlog clean task
+      lineinfile:
+        path: /etc/cron.d/mysql_delete_binlogs_multi
+        line: "*/15 * * * * root /usr/local/scripts/mysql/delete_binlogs_multi.sh /var/log/mysql_{{ instance }} 1024 mysql_{{ instance }} >> /var/log/services/mysql/delete_binlogs_mysql_{{ instance }}.log 2>&1"
+        state: present

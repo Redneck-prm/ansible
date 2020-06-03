@@ -1,0 +1,18 @@
+---
+- name: template example
+  hosts: [dbtest]
+  vars:
+    vg: vgdata
+    instance: test
+    lvm_size: 1g
+    lvm_log_size: 1g
+    port: 3333
+  tasks:
+    - name: create main lvm
+      template:
+        src: test.j2
+        dest: /test.txt
+        owner: root
+        group: root
+        mode: '0644'
+    

@@ -1,0 +1,13 @@
+#!/bin/bash
+/usr/bin/docker run \
+  --restart=on-failure:5 \
+  --network="bridge" \
+  -v /etc/mysql/percona-8:/etc/my.cnf.d \
+  -v /var/lib/mysql_{{ instance }}:/var/lib/mysql \
+  -v /var/log/mysql_{{ instance }}:/var/log/mysql-files \
+  -p {{ mysql_port }}:3306 \
+  -e MYSQL_ROOT_PASSWORD=`cat /etc/mysql/instances_root_pass` \
+  --name={{ instance }}-mysql \
+  percona:8.0.18-9 \
+  --max_allowed_packet=16777216 \
+  "$@"

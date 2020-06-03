@@ -1,0 +1,81 @@
+---
+- name: mysql instance init
+  hosts: [dbtest]
+  vars:
+    instance: test
+    mysql_host: "192.168.1.132"
+    mysql_port: 3333
+    mysql_pass: "pass"
+    new_user_pass: "pass"
+  tasks:
+    - name: create db
+      mysql_db:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        name: 
+          - "{{ instance }}"
+          - "monitoring"
+        state: present
+        
+    - name: Create database user
+      mysql_user:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        name: "{{instance}}_admin"        
+        password: "{{ new_user_pass }}"
+        host: "%"
+        priv: "{{ instance }}.*:ALL,GRANT"
+        state: present
+
+    - name: Create zabbix user
+      mysql_user:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        name: "zabbix"
+        host: "%"
+        password: "zabbix"
+        priv: "monitoring.*:ALL"
+        state: present
+
+    - name: Create replication user
+      mysql_user:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        name: "replication"        
+        password: "{{ new_user_pass }}"
+        host: "%"
+        priv: "*.*:REPLICATION SLAVE"
+        state: present
+    
+    - name: copy monitoring init sql
+      copy:
+        src: monitoring_init.sql
+        dest: /tmp
+        force: yes
+
+    - name: create replication table for monitoring
+      mysql_db:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        name: monitoring
+        state: import
+        target: /tmp/monitoring_init.sql
+
+
+
+
+
+
+
+
+
