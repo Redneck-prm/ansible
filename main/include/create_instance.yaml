@@ -52,9 +52,23 @@
         opts: defaults
         state: mounted
 
+    - name: Setup mysql db dir access mode after mount 
+      file:
+        path: "/var/lib/mysql_{{ instance }}"
+        owner: mysql
+        group: mysql
+        mode: '0777'
+
+    - name: Setup mysql db dir access mode after mount 
+      file:
+        path: "/var/log/mysql_{{ instance }}"
+        owner: mysql
+        group: mysql
+        mode: '0777'
+
     - name: create instance start script
       template:
-        src: instance_start_script.j2
+        src: templates/instance_start_script.j2
         dest: "/usr/local/bin/{{instance}}-mysql"
         owner: root
         group: root
@@ -62,7 +76,7 @@
 
     - name: create instance service file
       template:
-        src: instance-mysql.service.j2
+        src: templates/instance-mysql.service.j2
         dest: "/etc/systemd/system/{{ instance }}-mysql.service"
         owner: root
         group: root
@@ -77,18 +91,4 @@
         name: "{{ instance }}-mysql.service"
         enabled: yes
         state: started
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

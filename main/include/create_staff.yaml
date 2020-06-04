@@ -1,14 +1,8 @@
----
-- name: instance create
-  hosts: [dbtest]
-  vars:
-    vg: vgdata
-    instance: test
-    lvm_size: 1g
-    lvm_log_size: 1g
-    mysql_port: 3334
-    
-  tasks:
+    - set_fact: lvm_log_size_in_g="{{lvm_log_size | regex_replace('g', '') }}"
+    - set_fact: lvm_log_size_in_mb="{{lvm_log_size_in_g | int * 1024 }}"
+    - set_fact: binlog_clean_size_in_mb="{{ (lvm_log_size_in_mb|int / 2) | int }}"
+
+
     - name: Create instance backup dir
       file:
         path: "/srv/backup/mysql_{{ instance }}"
@@ -32,5 +26,5 @@
     - name: add binlog clean task
       lineinfile:
         path: /etc/cron.d/mysql_delete_binlogs_multi
-        line: "*/15 * * * * root /usr/local/scripts/mysql/delete_binlogs_multi.sh /var/log/mysql_{{ instance }} 1024 mysql_{{ instance }} >> /var/log/services/mysql/delete_binlogs_mysql_{{ instance }}.log 2>&1"
+        line: "*/15 * * * * root /usr/local/scripts/mysql/delete_binlogs_multi.sh /var/log/mysql_{{ instance }} {{ binlog_clean_size_in_mb }} mysql_{{ instance }} >> /var/log/services/mysql/delete_binlogs_mysql_{{ instance }}.log 2>&1"
         state: present

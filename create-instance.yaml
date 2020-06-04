@@ -3,10 +3,10 @@
   hosts: [dbtest]
   vars:
     vg: vgdata
-    instance: test2
+    instance: test1
     lvm_size: 1g
     lvm_log_size: 1g
-    mysql_port: 3334
+    mysql_port: 3335
   tasks:
     - name: create main lvm
       lvol:

@@ -1,0 +1,8 @@
+---
+- name: create mysql instances on k8s-db1
+  hosts: [dbtest]
+  vars_files:
+    - vars.yaml
+
+  tasks:
+    - include_tasks: include/mysql_init.yaml

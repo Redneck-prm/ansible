@@ -1,13 +1,11 @@
 ---
 - name: create mysql instances on k8s-db1
   hosts: [dbtest]
+  vars_files:
+    - vars.yaml
 
   tasks:
 #    - debug: var=ansible_facts
-
-    - include external vars
-      include_vars:
-        file: vars.yaml
 
     - set_fact: 
         lvm_name="mysql_{{ instance }}"
@@ -101,6 +99,12 @@
     - shell: "docker ps"
       register: docker_ps
 
+    # костыль для прогона dry run, ибо в нем команды шелл не выполняются
+    - set_fact: 
+        docker_ps:
+          stdout: "test"
+      when: docker_ps.stdout is undefined
+
     - set_fact: mysql_port_str={{ mysql_port | string }}
    
     - set_fact: port_is_free=true
@@ -113,23 +117,50 @@
       register: cat_startup_scripts
       ignore_errors: True
 
+    # костыль для прогона dry run, ибо в нем команды шелл не выполняются
+    - set_fact: 
+        cat_startup_scripts: 
+          stdout: "test"
+      when: cat_startup_scripts.stdout is undefined
+
     - set_fact: port_is_free=true
       when: mysql_port_str not in cat_startup_scripts.stdout
 
     - set_fact: port_is_free=false
       when: port_is_free is undefined
 
+    - debug: msg="vg_exists {{vg_exists}} vg_free_enough {{vg_free_enough}} lvm_exists {{lvm_exists}} lvm_log_exists {{lvm_log_exists}} port_is_free {{port_is_free}}"
+    - debug: msg="mount_exists {{mount_exists}} log_mount_exists {{log_mount_exists}} service_file_exists {{service_file_exists}} startup_file_exists {{startup_file_exists}}"
 
-    - debug: msg="port is free {{port_is_free}}"
+# выставляем финальный разрешающий факт
+    - set_fact: all_checks_pass=false
 
-    - debug: 
-        msg="vg exists {{ vg_exists }} lvm exists {{ lvm_exists }}  lvm log exists {{ lvm_log_exists }}"
-    - debug:
-        msg="vg free space enough {{ vg_free_enough }}"
-    - debug:
-        msg="{{ mount_exists }} {{ log_mount_exists }} {{service_file_exists}} {{startup_file_exists}}"
+    - set_fact: all_checks_pass=true
+      when: 
+        - vg_exists == true
+        - vg_free_enough == true
+        - lvm_exists == false
+        - lvm_log_exists == false
+        - mount_exists == false
+        - log_mount_exists == false
+        - service_file_exists == false
+        - startup_file_exists == false
+        - port_is_free == true
 
-    - name: FAIL
-      debug: msg="FAIL"
-#      failed_when: port_is_free == false
+    - include_tasks: include/create_instance.yaml
+      when: all_checks_pass == true
 
+    - include_tasks: include/create_staff.yaml
+      when: all_checks_pass == true
+
+    - wait_for:
+        host: 127.0.0.1
+        port: "{{ mysql_port }}"
+      when: all_checks_pass == true
+
+    - wait_for:
+        timeout: 120
+      when: all_checks_pass == true
+
+    - include_tasks: include/mysql_init.yaml
+      when: all_checks_pass == true
