@@ -1,0 +1,17 @@
+[Unit]
+Description={{ instance }}-mysql docker wrapper
+Wants=docker.socket
+After=docker.service
+
+[Service]
+User=root
+PermissionsStartOnly=true
+ExecStart=/usr/local/bin/{{ instance }}-mysql
+ExecStartPre=-/usr/bin/docker rm -f {{ instance }}-mysql
+ExecStop=/usr/bin/docker stop {{instance }}-mysql
+Restart=always
+RestartSec=15s
+TimeoutStartSec=30s
+
+[Install]
+WantedBy=multi-user.target

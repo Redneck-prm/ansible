@@ -1,0 +1,8 @@
+vg: vgdata
+instance: test
+lvm_size: 1g
+lvm_log_size: 1g
+mysql_port: 3333
+mysql_host
+mysql_pass: "pass"
+new_user_pass: "pass"

@@ -1,0 +1,128 @@
+---
+- name: mysql instance init
+  hosts: [dbtest]
+  vars:
+    instance: test
+    mysql_host: "192.168.1.132"
+    mysql_port1: 3333
+    mysql_port2: 3334
+    mysql_pass: "pass"
+    mysql_user_pass: "pass"
+  tasks:
+    - name: get instance 1 master status
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port1 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: getmaster
+      register: mysql1_master_status
+      
+    - name: show mysql1 master status
+      debug:
+        msg: "{{ mysql1_master_status }}"
+
+    - name: mysql2 stop slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port2 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: stopslave
+
+    - name: set instance2 slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port2 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: changemaster
+        master_host: "{{ mysql_host }}"
+        master_port: "{{ mysql_port1 }}"
+        master_user: "replication"
+        master_password: "{{ mysql_user_pass }}"
+        master_log_file: "{{ mysql1_master_status.File }}"
+        master_log_pos: "{{ mysql1_master_status.Position }}"
+
+    - name: mysql2 start slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port2 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: startslave
+
+
+    - name: get instance 2  master status
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port2 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: getmaster
+      register: mysql2_master_status
+
+    - name: show mysql2 master status
+      debug:
+        msg: "{{ mysql2_master_status }}"
+
+    - name: mysql1 stop slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port1 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: stopslave
+
+
+    - name: set instance1 slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port1 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: changemaster
+        master_host: "{{ mysql_host }}"
+        master_port: "{{ mysql_port2 }}"
+        master_user: "replication"
+        master_password: "{{ mysql_user_pass }}"
+        master_log_file: "{{ mysql2_master_status.File }}"
+        master_log_pos: "{{ mysql2_master_status.Position }}"
+
+    - name: mysql1 start slave
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port1 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: startslave
+
+    - name: get instance 1 slave status
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port1 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: getslave
+      register: mysql1_slave_status
+
+    - name: get instance 2 slave status
+      mysql_replication:
+        login_host: "{{ mysql_host }}"
+        login_port: "{{ mysql_port2 }}"
+        login_user: root
+        login_password: "{{ mysql_pass }}"
+        mode: getslave
+      register: mysql2_slave_status
+
+    - name: show mysql1 slave status
+      debug:
+        msg: "{{ mysql1_slave_status }}"
+
+    - name: show mysql2 slave status
+      debug:
+        msg: "{{ mysql2_slave_status }}"
+      
+
+
+

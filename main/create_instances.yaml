@@ -1,0 +1,135 @@
+---
+- name: create mysql instances on k8s-db1
+  hosts: [dbtest]
+
+  tasks:
+#    - debug: var=ansible_facts
+
+    - include external vars
+      include_vars:
+        file: vars.yaml
+
+    - set_fact: 
+        lvm_name="mysql_{{ instance }}"
+        lvm_log_name="mysql_{{ instance }}_log"
+        lvm_size_int="{{lvm_size | regex_replace('g', '') }}"
+        lvm_log_size_int="{{lvm_log_size | regex_replace('g', '') }}"
+        mount_path="/var/lib/mysql_{{ instance }}"
+        log_mount_path="/var/log/mysql_{{ instance }}"
+        
+
+
+# определяем, существует ли такая vg 
+# на выходе булева переменная vg_exists
+
+    - name: is vg exists
+      set_fact: 
+        vg_exists=true
+        vg_free={{item.value.free_g}}
+      loop: "{{ query('dict', ansible_lvm.vgs|default({})) }}"
+      when: item.key == vg
+
+    - set_fact: vg_exists=false
+      when: vg_exists is undefined
+
+# определяем, существует ли lvm 
+    - name: is lvm exists
+      set_fact: lvm_exists=true
+      loop: "{{ query('dict', ansible_lvm.lvs|default({})) }}"
+      when: item.key == lvm_name
+
+    - set_fact: lvm_exists=false
+      when: lvm_exists is undefined
+
+# определяем, существует ли log lvm 
+    - name: is log lvm exists
+      set_fact: lvm_log_exists=true
+      loop: "{{ query('dict', ansible_lvm.lvs|default({})) }}"
+      when: item.key == lvm_log_name
+
+    - set_fact: lvm_log_exists=false
+      when: lvm_log_exists is undefined
+
+# проверяем свободное место
+    - set_fact: vg_free_enough={{ vg_free|float - lvm_size_int|float - lvm_log_size_int|float >= 1 }}
+      when: vg_exists == true
+
+
+# проверяем наличие маунтов 
+
+    - set_fact: mount_exists=true
+      loop: "{{ ansible_mounts }}"
+      when: item.mount == mount_path
+
+    - set_fact: mount_exists=false
+      when: mount_exists is undefined
+
+    - set_fact: log_mount_exists=true
+      loop: "{{ ansible_mounts }}"
+      when: item.mount == log_mount_path
+
+    - set_fact: log_mount_exists=false
+      when: log_mount_exists is undefined
+
+# проверяем, есть ли файл сервиса systemd
+
+    - name: Check /etc/systemd/system/${instance}-mysql.service exists
+      stat:
+        path: "/etc/systemd/system/{{ instance }}-mysql.service"
+      register: service_file_result
+
+    - set_fact: service_file_exists=true
+      when: service_file_result.stat.exists
+
+    - set_fact: service_file_exists=false
+      when: service_file_exists is undefined
+
+# проверяем наличие startup скрипта 
+
+    - name: Check /usr/local/bin/${instance}-mysql exists
+      stat:
+        path: "/usr/local/bin/{{ instance }}-mysql"
+      register: startup_file_result
+
+    - set_fact: startup_file_exists=true
+      when: startup_file_result.stat.exists
+
+    - set_fact: startup_file_exists=false
+      when: startup_file_exists is undefined
+
+# проверяем, свободен ли порт 
+    - shell: "docker ps"
+      register: docker_ps
+
+    - set_fact: mysql_port_str={{ mysql_port | string }}
+   
+    - set_fact: port_is_free=true
+      when: mysql_port_str not in docker_ps.stdout
+
+# дополнительная проверка, на случай, если инстанс с портом существует
+# но временно выключен
+
+    - shell: "cat /usr/local/bin/*-mysql"
+      register: cat_startup_scripts
+      ignore_errors: True
+
+    - set_fact: port_is_free=true
+      when: mysql_port_str not in cat_startup_scripts.stdout
+
+    - set_fact: port_is_free=false
+      when: port_is_free is undefined
+
+
+    - debug: msg="port is free {{port_is_free}}"
+
+    - debug: 
+        msg="vg exists {{ vg_exists }} lvm exists {{ lvm_exists }}  lvm log exists {{ lvm_log_exists }}"
+    - debug:
+        msg="vg free space enough {{ vg_free_enough }}"
+    - debug:
+        msg="{{ mount_exists }} {{ log_mount_exists }} {{service_file_exists}} {{startup_file_exists}}"
+
+    - name: FAIL
+      debug: msg="FAIL"
+#      failed_when: port_is_free == false
+
