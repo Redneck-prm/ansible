@@ -7,10 +7,10 @@
     instance: test1
     lvm_size: 2g
     lvm_log_size: 1g
-    mysql_port: 3334
+    mysql_port: 3333
 
   tasks:
-    - debug: var=ansible_facts
+#    - debug: var=ansible_facts
 
     - set_fact: 
         lvm_name="mysql_{{ instance }}"
@@ -74,6 +74,8 @@
     - set_fact: log_mount_exists=false
       when: log_mount_exists is undefined
 
+# проверяем, есть ли файл сервиса systemd
+
     - name: Check /etc/systemd/system/${instance}-mysql.service exists
       stat:
         path: "/etc/systemd/system/{{ instance }}-mysql.service"
@@ -84,6 +86,8 @@
 
     - set_fact: service_file_exists=false
       when: service_file_exists is undefined
+
+# проверяем наличие startup скрипта 
 
     - name: Check /usr/local/bin/${instance}-mysql exists
       stat:
@@ -96,6 +100,30 @@
     - set_fact: startup_file_exists=false
       when: startup_file_exists is undefined
 
+# проверяем, свободен ли порт 
+    - shell: "docker ps"
+      register: docker_ps
+
+    - set_fact: mysql_port_str={{ mysql_port | string }}
+   
+    - set_fact: port_is_free=true
+      when: mysql_port_str not in docker_ps.stdout
+
+# дополнительная проверка, на случай, если инстанс с портом существует
+# но временно выключен
+
+    - shell: "cat /usr/local/bin/*-mysql"
+      register: cat_startup_scripts
+      ignore_errors: True
+
+    - set_fact: port_is_free=true
+      when: mysql_port_str not in cat_startup_scripts.stdout
+
+    - set_fact: port_is_free=false
+      when: port_is_free is undefined
+
+
+    - debug: msg="port is free {{port_is_free}}"
 
     - debug: 
         msg="vg exists {{ vg_exists }} lvm exists {{ lvm_exists }}  lvm log exists {{ lvm_log_exists }}"
@@ -103,3 +131,8 @@
         msg="vg free space enough {{ vg_free_enough }}"
     - debug:
         msg="{{ mount_exists }} {{ log_mount_exists }} {{service_file_exists}} {{startup_file_exists}}"
+
+    - name: FAIL
+      debug: msg="FAIL"
+#      failed_when: port_is_free == false
+
