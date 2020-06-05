@@ -1,6 +1,8 @@
 vg: vgdata
-instance: test6
+instance: dbtest5
 lvm_size: 1g
 lvm_log_size: 1g
-mysql_port: 3338
+mysql_port: 3334
 mysql_new_user_pass: "pass"
+mysql_host1: "192.168.1.132"
+mysql_host2: "192.168.1.130"

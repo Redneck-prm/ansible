@@ -1,2 +1,12 @@
-[dbtest]
-dbtest.local ansible_host=192.168.1.132
+db1.local ansible_host=192.168.1.132
+db2.local ansible_host=192.168.1.130
+
+[db1]
+db1.local
+
+[db2]
+db2.local
+
+[dball]
+db1.local
+db2.local
