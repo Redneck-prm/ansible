@@ -49,20 +49,23 @@
       when: lvm_log_exists is undefined
 
 # проверяем свободное место
-    - set_fact: vg_free_enough={{ vg_free|float - lvm_size_int|float - lvm_log_size_int|float >= 1 }}
+    - name: is vg have free space
+      set_fact: vg_free_enough={{ vg_free|float - lvm_size_int|float - lvm_log_size_int|float >= 1 }}
       when: vg_exists == true
 
 
 # проверяем наличие маунтов 
 
-    - set_fact: mount_exists=true
+    - name: check maunts exists
+      set_fact: mount_exists=true
       loop: "{{ ansible_mounts }}"
       when: item.mount == mount_path
 
     - set_fact: mount_exists=false
       when: mount_exists is undefined
 
-    - set_fact: log_mount_exists=true
+    - name: check log mount exists
+      set_fact: log_mount_exists=true
       loop: "{{ ansible_mounts }}"
       when: item.mount == log_mount_path
 
@@ -96,7 +99,8 @@
       when: startup_file_exists is undefined
 
 # проверяем, свободен ли порт 
-    - shell: "docker ps"
+    - name: check ports in docker ps
+      shell: "docker ps"
       register: docker_ps
 
     # костыль для прогона dry run, ибо в нем команды шелл не выполняются
@@ -113,7 +117,8 @@
 # дополнительная проверка, на случай, если инстанс с портом существует
 # но временно выключен
 
-    - shell: "cat /usr/local/bin/*-mysql"
+    - name: check ports in cat /usr/local/bin/*-mysql
+      shell: "cat /usr/local/bin/*-mysql"
       register: cat_startup_scripts
       ignore_errors: True
 
@@ -133,7 +138,8 @@
     - debug: msg="mount_exists {{mount_exists}} log_mount_exists {{log_mount_exists}} service_file_exists {{service_file_exists}} startup_file_exists {{startup_file_exists}}"
 
 # выставляем финальный разрешающий факт
-    - set_fact: all_checks_pass=false
+    - name: set final check fact
+      set_fact: all_checks_pass=false
 
     - set_fact: all_checks_pass=true
       when: 
@@ -153,12 +159,14 @@
     - include_tasks: include/create_staff.yaml
       when: all_checks_pass == true
 
-    - wait_for:
+    - name: wait for mysql port on 127.0.0.1
+      wait_for:
         host: 127.0.0.1
         port: "{{ mysql_port }}"
       when: all_checks_pass == true
 
-    - wait_for:
+    - name: wait 120 seconds
+      wait_for:
         timeout: 120
       when: all_checks_pass == true
 

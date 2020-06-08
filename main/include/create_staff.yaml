@@ -20,7 +20,7 @@
     - name: add backup transfer task
       lineinfile:
         path: /usr/local/scripts/mysql/run_backup_transfer.sh
-        line: "/usr/local/scripts/backup_maint.sh k8s-db1.cc1.srv.loc /srv/backup/mysql_{{ instance }} cc-storage-1.ertelecom.ru /srv/backup/k8s-db1.cc1.srv.loc/mysql_{{ instance }} 7 2"
+        line: "/usr/local/scripts/backup_maint.sh {{ ansible_hostname }} /srv/backup/mysql_{{ instance }} cc-storage-1.ertelecom.ru /srv/backup/k8s-db1.cc1.srv.loc/mysql_{{ instance }} 7 2"
         state: present
 
     - name: add binlog clean task

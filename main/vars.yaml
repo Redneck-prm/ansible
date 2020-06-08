@@ -1,5 +1,5 @@
 vg: vgdata
-instance: dbtest5
+instance: test2
 lvm_size: 1g
 lvm_log_size: 1g
 mysql_port: 3334

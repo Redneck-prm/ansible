@@ -1,6 +1,6 @@
 ---
 - name: create mysql instances on k8s-db1
-  hosts: [dbtest]
+  hosts: [dball]
   vars_files:
     - vars.yaml
 
